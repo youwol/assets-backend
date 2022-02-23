@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: { { include "chart.fullname" . } }
+  labels:
+    { { - include "chart.labels" . | nindent 4 } }
+spec:
+  replicas: { { .Values.replicaCount } }
+  selector:
+    matchLabels:
+      { { - include "chart.selectorLabels" . | nindent 6 } }
+  template:
+    metadata:
+      annotations:
+      { { - if .Values.forceRestart } }
+      releaseTime: { { dateInZone "2006-01-02 15:04:05Z" (now) "UTC"| quote } }
+      { { - end } }
+      labels:
+        { { - include "chart.selectorLabels" . | nindent 8 } }
+    spec:
+    { { - with .Values.imagePullSecrets } }
+    imagePullSecrets:
+      { { - toYaml . | nindent 8 } }
+    { { - end } }
+    serviceAccountName: { { include "chart.serviceAccountName" . } }
+    securityContext:
+      { { - toYaml .Values.podSecurityContext | nindent 8 } }
+    containers:
+      - name: { { .Chart.Name } }
+        securityContext:
+          { { - toYaml .Values.securityContext | nindent 12 } }
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: { { .Values.image.pullPolicy } }
+        ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          timeoutSeconds: 2
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          timeoutSeconds: 2
+          failureThreshold: 3
+        env:
+          - name: AUTH_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: youwol-auth
+                key: clientId
+          - name: AUTH_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: youwol-auth
+                key: clientSecret
+          - name: AUTH_CLIENT_SCOPE
+            valueFrom:
+              secretKeyRef:
+                name: youwol-auth
+                key: scope
+          - name: AUTH_HOST
+            value: { { .Values.keycloak.host } }
+        resources:
+          { { - toYaml .Values.resources | nindent 12 } }
+    { { - with .Values.nodeSelector } }
+    nodeSelector:
+      { { - toYaml . | nindent 8 } }
+    { { - end } }
+    { { - with .Values.affinity } }
+    affinity:
+      { { - toYaml . | nindent 8 } }
+    { { - end } }
+    { { - with .Values.tolerations } }
+    tolerations:
+      { { - toYaml . | nindent 8 } }
+    { { - end } }

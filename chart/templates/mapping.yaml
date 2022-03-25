@@ -1,23 +1,23 @@
-{ { - if .Values.mappings.enabled - } }
-  { { - range $key, $value := .Values.mappings.targetHosts } }
+{{- if .Values.mappings.enabled -}}
+{{- range $key, $value := .Values.mappings.targetHosts }}
 apiVersion: getambassador.io/v2
 kind: Mapping
 metadata:
-  name: { { template "chart.fullname" $ } }-{{ $key }}
-  namespace: { { $.Release.Namespace } }
+  name: {{ template "chart.fullname" $ }}-{{ $key }}
+  namespace: {{ $.Release.Namespace }}
 spec:
-  host: { { $value } }
-  prefix: /api/assets-backend/
+  host: {{ $value }}
+  prefix: /api/cdn-backend/
   service: '{{ template "chart.fullname" $ }}:80'
-  timeout_ms: 30000
+  timeout_ms: 300000
 ---
-{ { - end } }
-  { { - end } }
-  { { - if .Values.ingress.enabled - } }
+{{- end }}
+{{- end }}
+{{- if .Values.ingress.enabled -}}
 apiVersion: configuration.konghq.com/v1
 kind: KongIngress
 metadata:
-  name: { { include "chart.fullname" . } }
+  name: {{ include "chart.fullname" . }}
 upstream:
   slots: 10
   hash_on: none
@@ -27,7 +27,7 @@ upstream:
     active:
       healthy:
         http_statuses:
-          - 200
+        - 200
         interval: 10
       http_path: "/healthz"
       timeout: 1
@@ -36,12 +36,12 @@ proxy:
   path: /
   connect_timeout: 60000
   retries: 10
-  read_timeout: 10000
-  write_timeout: 10000
+  read_timeout: 300000
+  write_timeout: 300000
 route:
   regex_priority: 0
   strip_path: true
   preserve_host: true
   protocols:
-    - https
-  { { - end } }
+  - https
+{{- end }}

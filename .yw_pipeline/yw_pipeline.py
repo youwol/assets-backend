@@ -1,7 +1,12 @@
+from pathlib import Path
+
+import youwol_assets_backend
+import youwol_utils
 from youwol.environment.models import IPipelineFactory
 from youwol.environment.youwol_environment import YouwolEnvironment
-from youwol.pipelines.docker_k8s_helm import InstallHelmStepConfig, get_helm_app_version, PublishDockerStepConfig
-from youwol.pipelines.pipeline_fastapi_youwol_backend import pipeline, PipelineConfig, DocStepConfig
+from youwol.pipelines.docker_k8s_helm import InstallHelmStepConfig, get_helm_app_version
+from youwol.pipelines.pipeline_fastapi_youwol_backend import pipeline, PipelineConfig, DocStepConfig, \
+    CustomPublishDockerStepConfig
 from youwol_utils.context import Context
 
 
@@ -21,9 +26,13 @@ class PipelineFactory(IPipelineFactory):
             config = PipelineConfig(
                 tags=["assets-backend"],
                 k8sInstance=env.k8sInstance,
-                dockerConfig=PublishDockerStepConfig(
+                dockerConfig=CustomPublishDockerStepConfig(
                     dockerRepo=docker_repo,
-                    imageVersion=lambda project, _ctx: get_helm_app_version(project.path)
+                    imageVersion=lambda project, _ctx: get_helm_app_version(project.path),
+                    python_modules_copied=[
+                        Path(youwol_utils.__file__).parent,
+                        Path(youwol_assets_backend.__file__).parent
+                    ]
                 ),
                 docConfig=DocStepConfig(),
                 helmConfig=InstallHelmStepConfig(

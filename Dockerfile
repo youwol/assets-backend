@@ -17,4 +17,4 @@ RUN pip3 install --no-cache-dir --upgrade -r "requirements.txt"
 COPY /src /root/
 
 
-ENTRYPOINT ["python3.9", "-u", "main.py", "tricot"]
+ENTRYPOINT ["python3.9", "-u", "main.py", "prod"]

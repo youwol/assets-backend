@@ -1,48 +1,38 @@
-import asyncio
-import itertools
+from youwol_assets_backend import get_router
+from youwol_utils.servers.fast_api import serve, FastApiApp, FastApiRouter, AppConfiguration, \
+    select_configuration_from_command_line
 
-import uvicorn
-from fastapi import FastAPI, Depends
 
-from youwol_assets.configurations import get_configuration, Configuration
-from youwol_assets.root_paths import router as assets_router
-from youwol_assets.utils import init_resources
-from youwol_utils import log_info
-from youwol_utils.middlewares.root_middleware import RootMiddleware
-from youwol_utils.utils_paths import matching_files, FileListing, files_check_sum
+async def local() -> AppConfiguration:
+    from config_local import get_configuration as config
+    return await config()
 
-flatten = itertools.chain.from_iterable
 
-configuration: Configuration = asyncio.get_event_loop().run_until_complete(get_configuration())
-asyncio.get_event_loop().run_until_complete(init_resources(configuration))
+async def hybrid() -> AppConfiguration:
+    from config_hybrid import get_configuration as config
+    return await config()
 
-app = FastAPI(
-    title="assets-backend",
-    description="backend to manage assets",
-    root_path=configuration.open_api_prefix)
 
-app.add_middleware(configuration.auth_middleware, **configuration.auth_middleware_args)
-app.add_middleware(RootMiddleware, ctx_logger=configuration.ctx_logger)
+async def prod() -> AppConfiguration:
+    from config_prod import get_configuration as config
+    return await config()
 
-app.include_router(
-    assets_router,
-    prefix=configuration.base_path,
-    dependencies=[Depends(get_configuration)],
-    tags=[]
+
+app_config = select_configuration_from_command_line(
+    {
+        "local": local,
+        "hybrid": hybrid,
+        "prod": prod
+    }
 )
 
-files_src_check_sum = matching_files(
-    folder="./",
-    patterns=FileListing(
-        include=['*'],
-        # when deployed using dockerfile there is additional files in ./src: a couple of .* files and requirements.txt
-        ignore=["requirements.txt", ".*", "*.pyc"]
+serve(
+    FastApiApp(
+        title="assets-backend",
+        description="Manage assets, permissions & metadata",
+        server_options=app_config.server,
+        root_router=FastApiRouter(
+            router=get_router(app_config.service)
+        )
     )
 )
-
-log_info(f"./src check sum: {files_check_sum(files_src_check_sum)} ({len(files_src_check_sum)} files)")
-
-if __name__ == "__main__":
-    # app: incorrect type. More here: https://github.com/tiangolo/fastapi/issues/3927
-    # noinspection PyTypeChecker
-    uvicorn.run(app, host="0.0.0.0", port=configuration.http_port)

@@ -1,98 +1,74 @@
-# Default values for chart.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+# env : set of values of "minio", "redis", "openidBaseUrl", "openidClient", "keycloakAdmin"
+#
+# Setup container environnement for these functionalities.
+#
+# env:
+#   - minio            # MINIO_HOST_PORT, MINIO_ACCESS_KEY, MINIO_ACCESS_SECRET
+#   - openidBaseUrl    # OPENID_BASE_URL
+#   - openidClient     # OPENID_CLIENT_ID, OPENID_CLIENT_SECRET
+#   - keycloakAdmin    # KEYCLOAK_ADMIN_CLIENT_ID, KEYCLOAK_ADMIN_CLIENT_SECRET, KEYCLOAK_ADMIN_BASE_URL
+#   - redis            # REDIS_HOST, REDIS_USERNAME, REDIS_PASSWORD
+env:
+  - openidClient
 
-replicaCount: 1
 
-image:
-  repository: registry.gitlab.com/youwol/platform/assets-backend
-  tag: latest
-  pullPolicy: Always
+# Ingress path : url path
+#
+# The path declared in the ingress manifest.
+#
+# If set, an ingress with className "kong" will be templated. Beyond using this value as path, this ingress will be
+# specified with the platform domain as host, a certificate managed by letsencrypt and HTTP redirection to HTTPS.
+#
+# If not set, no ingress manifest is output
+#
+# ingressPath: "/api/path"
 
-imagePullSecrets:
-  - name: gitlab-docker
 
-nameOverride: ""
-fullnameOverride: "assets-backend"
 
-forceRestart: true
+# docker image tag : string
+#
+# If not set, the AppVersion of the chart will be use for docker image tag
+#
+# See also imagePullPolicy
+#
+# imageTag: "latest"
 
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: true
-  # Annotations to add to the service account
-  annotations: { }
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: ""
 
-podAnnotations: { }
 
-podSecurityContext: { }
-# fsGroup: 2000
+# Image pull policy : one of "Always", "IfNotPresent" or "Never"
+#
+# If not set, the behaviour will depend upon docker image tag and chart AppVersion :
+#
+#    Tag      |   AppVersion   |  policy  | Notes
+# ------------+----------------+----------+-------
+#  "latest"   |    x.y.z       | not set  | k8s will default to Always since tag is "latest"
+#  ≠ "latest" |    x.y.z       | mot est  | k8s will default to IfNotPresent
+#  any        |    x.y.z-wip   | "Always" |
+#
+# See also imageTag
+#
+# imagePullPolicy: "Always"
 
-securityContext: { }
-  # capabilities:
-  #   drop:
-  #   - ALL
-# readOnlyRootFilesystem: true
-# runAsNonRoot: true
-# runAsUser: 1000
 
-service:
-  type: ClusterIP
-  port: 80
-  annotations:
-    konghq.com/override: assets-backend
 
-ingress:
-  enabled: true
-  privateAPI: true # this api will be unavailable to users in prod (only to developers)
-  annotations:
-    kubernetes.io/ingress.class: kong
-    konghq.com/plugins: oidc-dev
-  hosts:
-    - host: gc.platform.youwol.com
-      paths: [ "/api/assets-backend" ]
-  tls: [ ]
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+# probeSecret: boolean
+#
+# If true:
+# - a random string is looked up in live deployment or generated on chart first installation.
+# - health check probes by k8s will send an HTTP header "x-k8s-probe-secret" with that value.
+# - An environnement variable "K8S_PROBE_SECRET" is defined with that value.
+#
+# If not set or false, none of the above is done
+#
+# probeSecret: true
 
-resources: { }
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-# requests:
-#   cpu: 100m
-#   memory: 128Mi
 
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
 
-nodeSelector: { }
-
-tolerations: [ ]
-
-affinity: { }
-
-keycloak:
-  host: gc.auth.youwol.com
-
-mappings:
-  enabled: false
-  targetHosts: { }
-  # insert here your mapping hosts
-  # key: "value"
-  # e.g. 
-  # dev: "dev.platform.youwol.com"
-  # OR
-  # by command line with the argument: helm install minio minio -n toto --values minio/values.yaml --set mappings.targetHosts.toto=toto.platform.youwol.com
+#  platform domain value : FQDN
+#
+# A replacement for the platform domain specified in the ingress manifest.
+#
+# Since platform domain is lookup in deployed configMap, templating will fail when using helm template or --dry-run.
+# This value is only use in these cases.
+#
+# platformDomain: "platform.domain"

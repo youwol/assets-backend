@@ -7,25 +7,22 @@ from youwol_utils.clients.oidc.oidc_config import OidcInfos, PrivateClient
 from youwol_utils.context import DeployedContextReporter
 from youwol_utils.http_clients.assets_backend import ASSETS_TABLE, ACCESS_HISTORY, ACCESS_POLICY
 from youwol_utils.middlewares import AuthMiddleware
+from youwol_utils.servers.env import OPENID_CLIENT, Env
 from youwol_utils.servers.fast_api import FastApiMiddleware, ServerOptions, AppConfiguration
 
 
 async def get_configuration():
-    required_env_vars = [
-        "OPENID_BASE_URL",
-        "OPENID_CLIENT_ID",
-        "OPENID_CLIENT_SECRET"
-    ]
+    required_env_vars = OPENID_CLIENT
 
     not_founds = [v for v in required_env_vars if not os.getenv(v)]
     if not_founds:
         raise RuntimeError(f"Missing environments variable: {not_founds}")
 
     openid_infos = OidcInfos(
-        base_uri=os.getenv("OPENID_BASE_URL"),
+        base_uri=os.getenv(Env.OPENID_BASE_URL),
         client=PrivateClient(
-            client_id=os.getenv("OPENID_CLIENT_ID"),
-            client_secret=os.getenv("OPENID_CLIENT_SECRET")
+            client_id=os.getenv(Env.OPENID_CLIENT_ID),
+            client_secret=os.getenv(Env.OPENID_CLIENT_SECRET)
         )
     )
 

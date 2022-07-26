@@ -4,7 +4,7 @@ description: Deployment of youwol platform assets-backend
 type: application
 
 # Chart version : increment when, and only when, modifying ./chart/ directory content
-version: 0.4.0
+version: 0.9.0
 
 # App version : increment when source code change.
 # Will be used for docker image tag, unless override by value imageTage
@@ -12,5 +12,5 @@ appVersion: "0.3.13"
 
 dependencies:
   - name: lib-backend
-    version: 0.0.1
+    version: 0.0.4
     repository: https://gitlab.com/api/v4/projects/15166395/packages/helm/stable/

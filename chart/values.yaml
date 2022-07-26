@@ -1,29 +1,41 @@
-# env : set of values of "minio", "redis", "openidBaseUrl", "openidClient", "keycloakAdmin"
+##### Container Environments values #####
+
+# env : set of values from "minio", "redis", "openidBaseUrl", "openidClient", "keycloakAdmin"
 #
 # Setup container environnement for these functionalities.
 #
-# env:
-#   - minio            # MINIO_HOST_PORT, MINIO_ACCESS_KEY, MINIO_ACCESS_SECRET
-#   - openidBaseUrl    # OPENID_BASE_URL
-#   - openidClient     # OPENID_CLIENT_ID, OPENID_CLIENT_SECRET
-#   - keycloakAdmin    # KEYCLOAK_ADMIN_CLIENT_ID, KEYCLOAK_ADMIN_CLIENT_SECRET, KEYCLOAK_ADMIN_BASE_URL
-#   - redis            # REDIS_HOST, REDIS_USERNAME, REDIS_PASSWORD
 env:
-  - openidClient
+#   - openidBaseUrl    # OPENID_BASE_URL
+  - openidClient     # OPENID_BASE_URL, OPENID_CLIENT_ID, OPENID_CLIENT_SECRET
+#   - redis            # REDIS_HOST, REDIS_USERNAME, REDIS_PASSWORD
+#   - minio            # MINIO_HOST_PORT, MINIO_ACCESS_KEY, MINIO_ACCESS_SECRET
+#   - keycloakAdmin    # KEYCLOAK_ADMIN_CLIENT_ID, KEYCLOAK_ADMIN_CLIENT_SECRET, KEYCLOAK_ADMIN_BASE_URL
+
+
+
+##### Ingress #####
+
+# ingressEnabled : boolean
+#
+# If true, an ingress with className "kong" will be templated. This ingress will be specified with the
+# platform domain as host, a certificate managed by letsencrypt and various konghq.com annotations.
+#
+# If not set or false, no Ingress object is templated.
+#
+# ingressEnabled: true
 
 
 # Ingress path : url path
 #
-# The path declared in the ingress manifest.
+# The path to declare in the ingress manifest, if ingress is true.
 #
-# If set, an ingress with className "kong" will be templated. Beyond using this value as path, this ingress will be
-# specified with the platform domain as host, a certificate managed by letsencrypt and HTTP redirection to HTTPS.
+# If not set, the path is constructed by appending release fullname to /api/
 #
-# If not set, no ingress manifest is output
-#
-# ingressPath: "/api/path"
+# ingressPath: "/api/foo"
 
 
+
+##### Container Docker Image #####
 
 # docker image tag : string
 #
@@ -34,22 +46,23 @@ env:
 # imageTag: "latest"
 
 
-
 # Image pull policy : one of "Always", "IfNotPresent" or "Never"
 #
 # If not set, the behaviour will depend upon docker image tag and chart AppVersion :
 #
 #    Tag      |   AppVersion   |  policy  | Notes
 # ------------+----------------+----------+-------
+#  any        |    x.y.z-wip   | "Always" |
 #  "latest"   |    x.y.z       | not set  | k8s will default to Always since tag is "latest"
 #  ≠ "latest" |    x.y.z       | mot est  | k8s will default to IfNotPresent
-#  any        |    x.y.z-wip   | "Always" |
 #
 # See also imageTag
 #
 # imagePullPolicy: "Always"
 
 
+
+##### Probing #####
 
 # probeSecret: boolean
 #
@@ -63,6 +76,8 @@ env:
 # probeSecret: true
 
 
+
+##### Offline templating #####
 
 #  platform domain value : FQDN
 #

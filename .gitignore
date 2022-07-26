@@ -5,3 +5,4 @@ src/tmp_zips
 .coverage
 src/youwol_utils
 **/__pycache__/**/*
+*.iml

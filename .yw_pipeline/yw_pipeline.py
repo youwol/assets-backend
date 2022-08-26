@@ -1,7 +1,3 @@
-from pathlib import Path
-
-import youwol_assets_backend
-import youwol_utils
 from youwol.environment.models import IPipelineFactory
 from youwol.environment.youwol_environment import YouwolEnvironment
 from youwol.pipelines.docker_k8s_helm import InstallHelmStepConfig, get_helm_app_version
@@ -22,29 +18,19 @@ class PipelineFactory(IPipelineFactory):
                 action="Pipeline creation for assets-backend",
                 with_attributes={'project': 'assets-backend'}
         ) as ctx:  # type: Context
-
             config = PipelineConfig(
                 tags=["assets-backend"],
                 k8sInstance=env.k8sInstance,
                 dockerConfig=CustomPublishDockerStepConfig(
                     dockerRepo=docker_repo,
                     imageVersion=lambda project, _ctx: get_helm_app_version(project.path),
-                    python_modules_copied=[
-                        Path(youwol_utils.__file__).parent,
-                        Path(youwol_assets_backend.__file__).parent
-                    ]
                 ),
                 docConfig=DocStepConfig(),
                 helmConfig=InstallHelmStepConfig(
-                    namespace="prod",
-                    secrets=[env.k8sInstance.openIdConnect.authSecret, docker_repo.pullSecret],
+                    namespace="apps",
                     chartPath=lambda project, _ctx: project.path / 'chart',
-                    valuesPath=lambda project, _ctx: project.path / 'chart' / 'values.yaml',
-                    overridingHelmValues=lambda project, _ctx: {
-                        "image": {
-                            "tag": get_helm_app_version(project.path)
-                        },
-                    })
+                    valuesPath=lambda project, _ctx: project.path / 'chart' / 'values.yaml'
+                )
             )
             await ctx.info(text='Pipeline config', data=config)
             result = await pipeline(config, ctx)

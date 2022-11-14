@@ -4,8 +4,8 @@ from config_common import get_py_youwol_env, on_before_startup
 
 from youwol_assets_backend import Constants, Configuration
 
-from youwol_utils import LocalStorageClient, LocalDocDbClient, LocalDocDbInMemoryClient
-from youwol_utils.context import ConsoleContextLogger
+from youwol_utils import LocalStorageClient, LocalDocDbClient
+from youwol_utils.context import ConsoleContextReporter
 from youwol_utils.http_clients.assets_backend import ASSETS_TABLE, ACCESS_HISTORY, ACCESS_POLICY
 from youwol_utils.middlewares.authentication_local import AuthLocalMiddleware
 from youwol_utils.servers.fast_api import FastApiMiddleware, ServerOptions, AppConfiguration
@@ -29,7 +29,7 @@ async def get_configuration():
             keyspace_name=Constants.namespace,
             table_body=ASSETS_TABLE
         ),
-        doc_db_access_history=LocalDocDbInMemoryClient(
+        doc_db_access_history=LocalDocDbClient(
             root_path=databases_path / 'docdb',
             keyspace_name=Constants.namespace,
             table_body=ACCESS_HISTORY
@@ -46,7 +46,7 @@ async def get_configuration():
         base_path="",
         middlewares=[FastApiMiddleware(AuthLocalMiddleware, {})],
         on_before_startup=_on_before_startup,
-        ctx_logger=ConsoleContextLogger()
+        ctx_logger=ConsoleContextReporter()
     )
     return AppConfiguration(
         server=server_options,

@@ -3,7 +3,7 @@ from config_common import get_py_youwol_env, on_before_startup, cache_prefix
 from youwol_assets_backend import Constants, Configuration
 from youwol_utils import StorageClient, DocDbClient, AuthClient, LocalCacheClient
 
-from youwol_utils.context import ConsoleContextLogger
+from youwol_utils.context import ConsoleContextReporter
 from youwol_utils.http_clients.assets_backend import ASSETS_TABLE, ACCESS_HISTORY, ACCESS_POLICY
 from youwol_utils.middlewares import Middleware
 from youwol_utils.servers.fast_api import FastApiMiddleware, ServerOptions, AppConfiguration
@@ -61,7 +61,7 @@ async def get_configuration():
             "cache_client": cache_client
         })],
         on_before_startup=_on_before_startup,
-        ctx_logger= ConsoleContextLogger()
+        ctx_logger=ConsoleContextReporter()
     )
     return AppConfiguration(
         server=server_options,

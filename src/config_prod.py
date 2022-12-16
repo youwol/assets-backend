@@ -1,5 +1,8 @@
 import os
 
+from minio import Minio
+from youwol_utils.clients.file_system.minio_file_system import MinioFileSystem
+
 from config_common import on_before_startup
 from youwol_assets_backend import Configuration, Constants
 from youwol_utils import StorageClient, DocDbClient, get_authorization_header
@@ -7,7 +10,7 @@ from youwol_utils.clients.oidc.oidc_config import OidcInfos, PrivateClient
 from youwol_utils.context import DeployedContextReporter
 from youwol_utils.http_clients.assets_backend import ASSETS_TABLE, ACCESS_HISTORY, ACCESS_POLICY
 from youwol_utils.middlewares import AuthMiddleware
-from youwol_utils.servers.env import OPENID_CLIENT, Env
+from youwol_utils.servers.env import OPENID_CLIENT, Env, minio_endpoint
 from youwol_utils.servers.fast_api import FastApiMiddleware, ServerOptions, AppConfiguration
 
 
@@ -53,7 +56,16 @@ async def get_configuration():
             table_body=ACCESS_POLICY,
             replication_factor=2
         ),
-        admin_headers=await get_authorization_header(openid_infos)
+        admin_headers=await get_authorization_header(openid_infos),
+        file_system=MinioFileSystem(
+            bucket_name=Constants.namespace,
+            client=Minio(
+                endpoint=minio_endpoint(minio_host=os.getenv(Env.MINIO_HOST)),
+                access_key=os.getenv(Env.MINIO_ACCESS_KEY),
+                secret_key=os.getenv(Env.MINIO_ACCESS_SECRET),
+                secure=False
+            )
+        )
     )
 
     server_options = ServerOptions(

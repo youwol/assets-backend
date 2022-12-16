@@ -4,7 +4,7 @@ from config_common import get_py_youwol_env, on_before_startup
 
 from youwol_assets_backend import Constants, Configuration
 
-from youwol_utils import LocalStorageClient, LocalDocDbClient
+from youwol_utils import LocalStorageClient, LocalDocDbClient, LocalFileSystem
 from youwol_utils.context import ConsoleContextReporter
 from youwol_utils.http_clients.assets_backend import ASSETS_TABLE, ACCESS_HISTORY, ACCESS_POLICY
 from youwol_utils.middlewares.authentication_local import AuthLocalMiddleware
@@ -38,6 +38,9 @@ async def get_configuration():
             root_path=databases_path / 'docdb',
             keyspace_name=Constants.namespace,
             table_body=ACCESS_POLICY
+        ),
+        file_system=LocalFileSystem(
+            root_path=env.pathsBook.local_storage / Constants.namespace
         )
     )
     server_options = ServerOptions(

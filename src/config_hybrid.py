@@ -1,3 +1,9 @@
+import os
+
+from minio import Minio
+from youwol_utils.clients.file_system.minio_file_system import MinioFileSystem
+from youwol_utils.servers.env import minio_endpoint, Env
+
 from config_common import get_py_youwol_env, on_before_startup, cache_prefix
 
 from youwol_assets_backend import Constants, Configuration
@@ -47,6 +53,15 @@ async def get_configuration():
             replication_factor=2
         ),
         admin_headers={'authorization': f'Bearer {auth_token}'},
+        file_system=MinioFileSystem(
+            bucket_name=Constants.namespace,
+            client=Minio(
+                endpoint=minio_endpoint(minio_host=os.getenv(Env.MINIO_HOST)),
+                access_key=os.getenv(Env.MINIO_ACCESS_KEY),
+                secret_key=os.getenv(Env.MINIO_ACCESS_SECRET),
+                secure=False
+            )
+        )
     )
 
     async def _on_before_startup():

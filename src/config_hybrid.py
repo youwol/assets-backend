@@ -1,67 +1,41 @@
-import os
-
-from minio import Minio
-from youwol_utils.clients.file_system.minio_file_system import MinioFileSystem
-from youwol_utils.servers.env import minio_endpoint, Env
-
-from config_common import get_py_youwol_env, on_before_startup, cache_prefix
+import sys
+from config_common import on_before_startup
 
 from youwol_assets_backend import Constants, Configuration
-from youwol_utils import StorageClient, DocDbClient, AuthClient, LocalCacheClient
+from youwol_utils import StorageClient
 
-from youwol_utils.context import ConsoleContextReporter
+from youwol_utils.context import ConsoleContextReporter, Context
 from youwol_utils.http_clients.assets_backend import ASSETS_TABLE, ACCESS_HISTORY, ACCESS_POLICY
-from youwol_utils.middlewares import Middleware
 from youwol_utils.servers.fast_api import FastApiMiddleware, ServerOptions, AppConfiguration
 
-
-def get_auth_token(env, url_cluster: str):
-    return next(t['value'] for t in env['tokensCache'] if t['dependencies']['host'] == url_cluster)
+from src.config_hybrid_clients import get_minio_client, AuthMiddleware, get_docdb_client
 
 
 async def get_configuration():
+    context_name = sys.argv[2]
+    port_fwd_minio = int(sys.argv[3])
+    port_fwd_docdb = int(sys.argv[4])
 
-    env = await get_py_youwol_env()
-    openid_host = env['k8sInstance']['openIdConnect']['host']
-    url_cluster = env['k8sInstance']['host']
-    auth_token = get_auth_token(env, url_cluster)
+    file_system = await get_minio_client(
+        context_name=context_name,
+        port_fwd=port_fwd_minio,
+        context=Context(data_reporters=[], logs_reporters=[])
+    )
 
-    auth_client = AuthClient(url_base=f"https://{openid_host}/auth")
-    cache_client = LocalCacheClient(prefix=cache_prefix)
+    url_cluster = "platform.youwol.com"
 
     service_config = Configuration(
         storage=StorageClient(
-            url_base=f"https://{url_cluster}/api/storage",
+            url_base=f"http://{url_cluster}/api/storage",
             bucket_name=Constants.namespace
         ),
-        doc_db_asset=DocDbClient(
-            url_base=f"https://{url_cluster}/api/docdb",
-            keyspace_name=Constants.namespace,
-            table_body=ASSETS_TABLE,
-            replication_factor=2
-        ),
-        doc_db_access_history=DocDbClient(
-            url_base=f"https://{url_cluster}/api/docdb",
-            keyspace_name=Constants.namespace,
-            table_body=ACCESS_HISTORY,
-            replication_factor=2
-        ),
-        doc_db_access_policy=DocDbClient(
-            url_base=f"https://{url_cluster}/api/docdb",
-            keyspace_name=Constants.namespace,
-            table_body=ACCESS_POLICY,
-            replication_factor=2
-        ),
-        admin_headers={'authorization': f'Bearer {auth_token}'},
-        file_system=MinioFileSystem(
-            bucket_name=Constants.namespace,
-            client=Minio(
-                endpoint=minio_endpoint(minio_host=os.getenv(Env.MINIO_HOST)),
-                access_key=os.getenv(Env.MINIO_ACCESS_KEY),
-                secret_key=os.getenv(Env.MINIO_ACCESS_SECRET),
-                secure=False
-            )
-        )
+        doc_db_asset=await get_docdb_client(context_name=context_name, port_fwd=port_fwd_docdb,
+                                            table=ASSETS_TABLE),
+        doc_db_access_history=await get_docdb_client(context_name=context_name, port_fwd=port_fwd_docdb,
+                                                     table=ACCESS_HISTORY),
+        doc_db_access_policy=await get_docdb_client(context_name=context_name, port_fwd=port_fwd_docdb,
+                                                    table=ACCESS_POLICY),
+        file_system=file_system
     )
 
     async def _on_before_startup():
@@ -69,12 +43,9 @@ async def get_configuration():
 
     server_options = ServerOptions(
         root_path="",
-        http_port=env['portsBook']['assets-backend'],
+        http_port=4006,
         base_path="",
-        middlewares=[FastApiMiddleware(Middleware, {
-            "auth_client": auth_client,
-            "cache_client": cache_client
-        })],
+        middlewares=[FastApiMiddleware(AuthMiddleware, {})],
         on_before_startup=_on_before_startup,
         ctx_logger=ConsoleContextReporter()
     )

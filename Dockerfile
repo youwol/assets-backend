@@ -11,8 +11,8 @@ RUN apt-get update \
 EXPOSE 8080
 WORKDIR /root
 
-COPY /py-youwol/docker-requirements.txt /root/
-RUN pip3 install --no-cache-dir --upgrade -r "docker-requirements.txt"
+COPY /py-youwol/requirements-docker.txt /root/
+RUN pip3 install --no-cache-dir --upgrade -r "requirements-docker.txt"
 
 COPY /py-youwol/youwol_utils /root/youwol_utils
 COPY /py-youwol/youwol_assets_backend /root/youwol_assets_backend
